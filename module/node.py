@@ -58,13 +58,27 @@ def _poll_job_result(job_id, app_id, secret_key, poll_interval, max_wait_time):
                 
         except requests.exceptions.RequestException as e:
             error_msg = f"轮询请求失败: {str(e)}"
-            logger.info(f"[MidjourneyAPI] {error_msg}")
-            return {"error": error_msg, "job_id": job_id}
+            logger.info(f"[MidjourneyAPI] {error_msg}，继续重试...")
+            # 检查是否超时
+            if time.time() - start_time > max_wait_time:
+                error_msg = f"任务轮询超时 ({max_wait_time}秒)，最后一次请求失败: {str(e)}"
+                logger.info(f"[MidjourneyAPI] {error_msg}")
+                return {"error": error_msg, "job_id": job_id}
+            # 等待后继续重试
+            time.sleep(poll_interval)
+            continue
             
         except Exception as e:
             error_msg = f"轮询过程出错: {str(e)}"
-            logger.info(f"[MidjourneyAPI] {error_msg}")
-            return {"error": error_msg, "job_id": job_id}
+            logger.info(f"[MidjourneyAPI] {error_msg}，继续重试...")
+            # 检查是否超时
+            if time.time() - start_time > max_wait_time:
+                error_msg = f"任务轮询超时 ({max_wait_time}秒)，最后一次请求出错: {str(e)}"
+                logger.info(f"[MidjourneyAPI] {error_msg}")
+                return {"error": error_msg, "job_id": job_id}
+            # 等待后继续重试
+            time.sleep(poll_interval)
+            continue
 
 
 class MidjourneyAPI:
@@ -363,15 +377,29 @@ class MidjourneyAPIPoll:
                     
             except requests.exceptions.RequestException as e:
                 error_msg = f"轮询请求失败: {str(e)}"
-                logger.info(f"[MidjourneyAPIPoll] {error_msg}")
-                error_response = json.dumps({"error": error_msg, "job_id": job_id}, ensure_ascii=False)
-                return (error_response, 0)
+                logger.info(f"[MidjourneyAPIPoll] {error_msg}，继续重试...")
+                # 检查是否超时
+                if time.time() - start_time > max_wait_time:
+                    error_msg = f"任务轮询超时 ({max_wait_time}秒)，最后一次请求失败: {str(e)}"
+                    logger.info(f"[MidjourneyAPIPoll] {error_msg}")
+                    error_response = json.dumps({"error": error_msg, "job_id": job_id}, ensure_ascii=False)
+                    return (error_response, -1)
+                # 等待后继续重试
+                time.sleep(poll_interval)
+                continue
                 
             except Exception as e:
                 error_msg = f"轮询过程出错: {str(e)}"
-                logger.info(f"[MidjourneyAPIPoll] {error_msg}")
-                error_response = json.dumps({"error": error_msg, "job_id": job_id}, ensure_ascii=False)
-                return (error_response, 0)
+                logger.info(f"[MidjourneyAPIPoll] {error_msg}，继续重试...")
+                # 检查是否超时
+                if time.time() - start_time > max_wait_time:
+                    error_msg = f"任务轮询超时 ({max_wait_time}秒)，最后一次请求出错: {str(e)}"
+                    logger.info(f"[MidjourneyAPIPoll] {error_msg}")
+                    error_response = json.dumps({"error": error_msg, "job_id": job_id}, ensure_ascii=False)
+                    return (error_response, -1)
+                # 等待后继续重试
+                time.sleep(poll_interval)
+                continue
 
 
 class MidjourneyJSONExtractor:
